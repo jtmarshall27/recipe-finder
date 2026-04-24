@@ -6,11 +6,7 @@ const CUISINES = [
 ];
 
 const SYSTEM_RECIPE = `You are a recipe suggestion assistant with deep knowledge of global cooking.
-Always respond with valid JSON only — no markdown fences, no extra text, no explanation.
-Your links must be real URLs from reputable, freely accessible recipe sites such as
-allrecipes.com, seriouseats.com, bonappetit.com, food52.com, simplyrecipes.com,
-tasteofhome.com, epicurious.com, thekitchn.com, delish.com, halfbakedharvest.com,
-skinnytaste.com, or similar. Never fabricate a URL.`;
+Always respond with valid JSON only — no markdown fences, no extra text, no explanation.`;
 
 const SYSTEM_UTILITY = `You are a helpful cooking assistant.
 Always respond with valid JSON only — no markdown fences, no extra text.`;
@@ -103,8 +99,6 @@ Return ONLY valid JSON — no markdown, no extra keys:
       "estimatedTime": "string (e.g. '35 minutes')",
       "difficulty": "beginner|intermediate|advanced",
       "description": "One sentence.",
-      "primaryLink": "https://...",
-      "alternateLinks": ["https://...", "https://..."],
       "isAdventurous": false,
       "allergyWarning": null
     }
@@ -152,13 +146,10 @@ Return ONLY this JSON:
       "estimatedTime": "string",
       "difficulty": "beginner|intermediate|advanced",
       "description": "One sentence.",
-      "difference": "Brief note on how it differs.",
-      "primaryLink": "https://...",
-      "alternateLinks": ["https://..."]
+      "difference": "Brief note on how it differs."
     }
   ]
-}
-Use only real URLs from reputable recipe sites.`;
+}`;
 
     const raw = await this.call([{ role: 'user', content: prompt }], SYSTEM_UTILITY);
     return this.parseJSON(raw);
@@ -228,10 +219,6 @@ function loadingHTML(msg) {
   </div>`;
 }
 
-function domainLabel(url) {
-  try { return new URL(url).hostname.replace(/^www\./, ''); }
-  catch { return url; }
-}
 
 const LINK_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24"
   fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -247,6 +234,22 @@ function esc(s) {
 }
 function cap(s) { return s ? s[0].toUpperCase() + s.slice(1) : ''; }
 function isValidUrl(s) { try { new URL(s); return true; } catch { return false; } }
+
+function recipeSearchLinks(name) {
+  const encoded = encodeURIComponent(name).replace(/%20/g, '+');
+  return {
+    google:      `https://www.google.com/search?q=${encoded}+recipe`,
+    allrecipes:  `https://www.allrecipes.com/search?q=${encoded}`,
+  };
+}
+
+function searchLinksHTML(name) {
+  const { google, allrecipes } = recipeSearchLinks(name);
+  return `<a href="${esc(google)}" target="_blank" rel="noopener noreferrer" class="link-primary">
+    Google ${LINK_ICON}</a>
+  <a href="${esc(allrecipes)}" target="_blank" rel="noopener noreferrer" class="link-alt">
+    AllRecipes ${LINK_ICON}</a>`;
+}
 
 /* ── Settings ────────────────────────────────────────────── */
 function loadSettingsIntoForm() {
@@ -346,40 +349,29 @@ function renderRecipes(recipes) {
     grid.innerHTML = '<p class="empty-state">No results — try adjusting your filters.</p>';
     return;
   }
-  grid.innerHTML = recipes.map((r, i) => {
-    const altLinks = (r.alternateLinks || []).filter(Boolean).slice(0, 2);
-    const altHTML  = altLinks.map(u =>
-      `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer" class="link-alt">
-        ${esc(domainLabel(u))} ${LINK_ICON}</a>`).join('');
-
-    return `<div class="recipe-card">
-      <div class="recipe-card-header">
-        <div class="recipe-name">${esc(r.name)}</div>
-        <div class="recipe-badges">
-          <span class="badge badge-cuisine">${esc(r.cuisine)}</span>
-          ${r.isAdventurous ? '<span class="badge badge-adventurous">✦ Adventurous</span>' : ''}
-          ${r.allergyWarning ? `<span class="badge badge-warning">⚠ ${esc(r.allergyWarning)}</span>` : ''}
-        </div>
+  grid.innerHTML = recipes.map((r, i) => `<div class="recipe-card">
+    <div class="recipe-card-header">
+      <div class="recipe-name">${esc(r.name)}</div>
+      <div class="recipe-badges">
+        <span class="badge badge-cuisine">${esc(r.cuisine)}</span>
+        ${r.isAdventurous ? '<span class="badge badge-adventurous">✦ Adventurous</span>' : ''}
+        ${r.allergyWarning ? `<span class="badge badge-warning">⚠ ${esc(r.allergyWarning)}</span>` : ''}
       </div>
-      <div class="recipe-meta">
-        <span class="meta-item"><span class="meta-icon">⏱</span> ${esc(r.estimatedTime)}</span>
-        <span class="meta-item"><span class="meta-icon">📊</span> ${cap(r.difficulty)}</span>
-      </div>
-      <p class="recipe-description">${esc(r.description)}</p>
-      <div class="recipe-links">
-        <div class="recipe-links-label">Recipe Sources</div>
-        <div class="links-row">
-          ${r.primaryLink ? `<a href="${esc(r.primaryLink)}" target="_blank" rel="noopener noreferrer" class="link-primary">
-            ${esc(domainLabel(r.primaryLink))} ${LINK_ICON}</a>` : ''}
-          ${altHTML}
-        </div>
-      </div>
-      <div class="recipe-actions">
-        <button class="btn-ghost" data-action="shopping" data-idx="${i}">🛒 Shopping List</button>
-        <button class="btn-ghost" data-action="save"     data-idx="${i}">♡ Save</button>
-      </div>
-    </div>`;
-  }).join('');
+    </div>
+    <div class="recipe-meta">
+      <span class="meta-item"><span class="meta-icon">⏱</span> ${esc(r.estimatedTime)}</span>
+      <span class="meta-item"><span class="meta-icon">📊</span> ${cap(r.difficulty)}</span>
+    </div>
+    <p class="recipe-description">${esc(r.description)}</p>
+    <div class="recipe-links">
+      <div class="recipe-links-label">Find this recipe</div>
+      <div class="links-row">${searchLinksHTML(r.name)}</div>
+    </div>
+    <div class="recipe-actions">
+      <button class="btn-ghost" data-action="shopping" data-idx="${i}">🛒 Shopping List</button>
+      <button class="btn-ghost" data-action="save"     data-idx="${i}">♡ Save</button>
+    </div>
+  </div>`).join('');
 }
 
 /* ── Delegated click handler (recipe cards + favorite cards) */
@@ -401,7 +393,7 @@ document.addEventListener('click', e => {
     if (!r) return;
     Storage.addFavorite({
       name: r.name, source: 'suggestion',
-      url: r.primaryLink, description: r.description,
+      description: r.description,
       cuisine: r.cuisine, estimatedTime: r.estimatedTime, difficulty: r.difficulty,
     });
     btn.textContent  = '♥ Saved';
@@ -491,26 +483,16 @@ async function handleVariants(recipeName, description) {
 function renderVariants(variants) {
   const body = document.getElementById('variants-body');
   if (!variants.length) { body.innerHTML = '<p class="empty-state">No variants found.</p>'; return; }
-  body.innerHTML = `<div class="variants-grid">` + variants.map(v => {
-    const altLinks = (v.alternateLinks || []).filter(Boolean).slice(0, 2);
-    const altHTML  = altLinks.map(u =>
-      `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer" class="link-alt">
-        ${esc(domainLabel(u))} ${LINK_ICON}</a>`).join('');
-    return `<div class="variant-card">
-      <div class="variant-name">${esc(v.name)}
-        <span style="font-weight:400;font-size:.82rem;color:var(--text-muted)">
-          ${esc(v.cuisine)} · ${esc(v.estimatedTime)} · ${cap(v.difficulty)}
-        </span>
-      </div>
-      <div class="variant-difference">${esc(v.difference)}</div>
-      <p class="variant-desc">${esc(v.description)}</p>
-      <div class="variant-links">
-        ${v.primaryLink ? `<a href="${esc(v.primaryLink)}" target="_blank" rel="noopener noreferrer" class="link-primary">
-          ${esc(domainLabel(v.primaryLink))} ${LINK_ICON}</a>` : ''}
-        ${altHTML}
-      </div>
-    </div>`;
-  }).join('') + `</div>`;
+  body.innerHTML = `<div class="variants-grid">` + variants.map(v => `<div class="variant-card">
+    <div class="variant-name">${esc(v.name)}
+      <span style="font-weight:400;font-size:.82rem;color:var(--text-muted)">
+        ${esc(v.cuisine)} · ${esc(v.estimatedTime)} · ${cap(v.difficulty)}
+      </span>
+    </div>
+    <div class="variant-difference">${esc(v.difference)}</div>
+    <p class="variant-desc">${esc(v.description)}</p>
+    <div class="variant-links">${searchLinksHTML(v.name)}</div>
+  </div>`).join('') + `</div>`;
 }
 
 /* ── Favorites ───────────────────────────────────────────── */
