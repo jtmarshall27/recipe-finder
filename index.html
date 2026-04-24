@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recipe Finder</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ── SETTINGS MODAL ──────────────────────────────────────── -->
+  <div id="settings-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="settings-title">Profile &amp; Settings</h2>
+        <button class="close-btn" data-close="settings-modal" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-body">
+
+        <div class="form-section">
+          <span class="form-label">Equipment on Hand</span>
+          <div class="equipment-grid">
+            <label class="check-item"><input type="checkbox" name="equipment" value="stovetop"> Stovetop</label>
+            <label class="check-item"><input type="checkbox" name="equipment" value="oven"> Oven</label>
+            <label class="check-item"><input type="checkbox" name="equipment" value="slow cooker"> Slow Cooker</label>
+            <label class="check-item"><input type="checkbox" name="equipment" value="instant pot"> Instant Pot</label>
+            <label class="check-item"><input type="checkbox" name="equipment" value="grill"> Grill</label>
+            <label class="check-item"><input type="checkbox" name="equipment" value="wok"> Wok</label>
+            <label class="check-item"><input type="checkbox" name="equipment" value="air fryer"> Air Fryer</label>
+            <label class="check-item"><input type="checkbox" name="equipment" value="stand mixer"> Stand Mixer</label>
+            <label class="check-item"><input type="checkbox" name="equipment" value="food processor"> Food Processor</label>
+            <label class="check-item"><input type="checkbox" name="equipment" value="blender"> Blender</label>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <label class="form-label" for="dislikes-input">Disliked Foods</label>
+          <p class="form-hint">Soft filter — these will never appear in suggestions</p>
+          <input type="text" id="dislikes-input" class="text-input" placeholder="e.g. cilantro, mushrooms, olives">
+        </div>
+
+        <div class="form-section">
+          <label class="form-label" for="allergies-input">Allergies</label>
+          <p class="form-hint">Hard filter — strictly excluded, flagged if borderline</p>
+          <input type="text" id="allergies-input" class="text-input" placeholder="e.g. peanuts, shellfish, gluten">
+        </div>
+
+        <div class="form-section">
+          <span class="form-label">Spice Tolerance <em class="ceiling-note">(ceiling, not exclusive)</em></span>
+          <div class="radio-group">
+            <label class="radio-item"><input type="radio" name="spice" value="mild"> Mild</label>
+            <label class="radio-item"><input type="radio" name="spice" value="medium" checked> Medium</label>
+            <label class="radio-item"><input type="radio" name="spice" value="hot"> Hot</label>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <label class="check-item">
+            <input type="checkbox" id="allow-nyt-check">
+            <span>Allow NYT Cooking links in results</span>
+          </label>
+          <p class="form-hint">Off by default to avoid paywalled content</p>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button id="save-settings-btn" class="btn-primary">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SHOPPING LIST MODAL ─────────────────────────────────── -->
+  <div id="shopping-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="shopping-title">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="shopping-title">Shopping List</h2>
+        <button class="close-btn" data-close="shopping-modal" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-body" id="shopping-body"></div>
+      <div class="modal-footer">
+        <button id="copy-list-btn" class="btn-secondary">Copy to Clipboard</button>
+        <button class="btn-secondary" onclick="window.print()">Print</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── VARIANTS MODAL ─────────────────────────────────────── -->
+  <div id="variants-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="variants-title">
+    <div class="modal modal-wide">
+      <div class="modal-header">
+        <h2 id="variants-title">Similar Recipes</h2>
+        <button class="close-btn" data-close="variants-modal" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-body" id="variants-body"></div>
+    </div>
+  </div>
+
+  <!-- ── TOAST CONTAINER ────────────────────────────────────── -->
+  <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- ── HEADER ─────────────────────────────────────────────── -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="header-brand">
+        <span class="brand-icon" aria-hidden="true">🍳</span>
+        <span class="brand-name">Recipe Finder</span>
+      </div>
+      <button id="settings-btn" class="icon-btn" title="Settings" aria-label="Open settings">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ── TABS ───────────────────────────────────────────────── -->
+  <nav class="tab-nav" role="tablist">
+    <button class="tab-btn active" data-tab="finder" role="tab" aria-selected="true">Find Recipes</button>
+    <button class="tab-btn" data-tab="favorites" role="tab" aria-selected="false">
+      My Favorites <span id="fav-count" class="fav-badge hidden">0</span>
+    </button>
+  </nav>
+
+  <!-- ── MAIN ───────────────────────────────────────────────── -->
+  <main class="main-content">
+
+    <!-- FINDER TAB -->
+    <div id="finder-tab" class="tab-pane active" role="tabpanel">
+      <div class="card finder-card">
+
+        <!-- Cuisine pills -->
+        <div class="form-section">
+          <span class="form-label">Cuisine</span>
+          <div id="cuisine-pills" class="cuisine-pills"></div>
+          <div id="custom-cuisine-wrap" class="hidden" style="margin-top:10px">
+            <input type="text" id="custom-cuisine-input" class="text-input"
+              placeholder="Describe what you're in the mood for…">
+          </div>
+        </div>
+
+        <!-- Cook time / skill / portions -->
+        <div class="form-row">
+          <div class="form-section">
+            <label class="form-label" for="cook-time">Cook Time</label>
+            <select id="cook-time" class="select-input">
+              <option value="any">Any</option>
+              <option value="under 15 min">Under 15 min</option>
+              <option value="under 30 min">Under 30 min</option>
+              <option value="under 45 min">Under 45 min</option>
+              <option value="under 1 hour">Under 1 hour</option>
+              <option value="1-2 hours">1–2 hours</option>
+              <option value="slow cook 3+ hrs">Slow cook 3+ hrs</option>
+            </select>
+          </div>
+          <div class="form-section">
+            <label class="form-label" for="skill-level">Skill Level</label>
+            <select id="skill-level" class="select-input">
+              <option value="any">Any</option>
+              <option value="beginner">Beginner</option>
+              <option value="intermediate">Intermediate</option>
+              <option value="advanced">Advanced</option>
+            </select>
+          </div>
+          <div class="form-section portions-col">
+            <label class="form-label" for="portions">Portions</label>
+            <select id="portions" class="select-input">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="4" selected>4</option>
+              <option value="6+">6+</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Toggles row -->
+        <div class="toggles-row">
+          <label class="check-item">
+            <input type="checkbox" id="dessert-check">
+            <span>Dessert</span>
+          </label>
+          <label class="check-item">
+            <input type="checkbox" id="healthier-check">
+            <span>Healthier options</span>
+          </label>
+        </div>
+
+        <!-- Text inputs -->
+        <div class="form-section">
+          <label class="form-label" for="ingredients-input">Ingredients to Use</label>
+          <input type="text" id="ingredients-input" class="text-input" placeholder="e.g. chicken, garlic, lemon">
+        </div>
+        <div class="form-section">
+          <label class="form-label" for="occasion-input">
+            Occasion <span class="optional-tag">optional</span>
+          </label>
+          <input type="text" id="occasion-input" class="text-input" placeholder="e.g. weeknight dinner, date night, meal prep">
+        </div>
+        <div class="form-section">
+          <label class="form-label" for="notes-input">Other Notes</label>
+          <input type="text" id="notes-input" class="text-input" placeholder="e.g. nothing too heavy, no spicy tonight">
+        </div>
+
+        <button id="find-btn" class="btn-primary btn-wide">
+          <span id="find-btn-text">Find Recipes</span>
+          <span id="find-btn-spinner" class="btn-spinner hidden" aria-hidden="true"></span>
+        </button>
+      </div>
+
+      <!-- Results -->
+      <div id="results-section" class="hidden">
+        <h2 class="section-heading">Suggestions</h2>
+        <div id="results-grid" class="results-grid"></div>
+      </div>
+    </div>
+    <!-- /FINDER TAB -->
+
+    <!-- FAVORITES TAB -->
+    <div id="favorites-tab" class="tab-pane hidden" role="tabpanel">
+
+      <!-- Add form card -->
+      <div class="card">
+        <h2 class="section-heading" style="margin-bottom:16px">Add a Favorite</h2>
+
+        <div class="add-method-tabs">
+          <button class="add-method-btn active" data-method="url">By URL</button>
+          <button class="add-method-btn" data-method="photo">By Photo</button>
+        </div>
+
+        <!-- URL form -->
+        <div id="add-url-form" class="add-form">
+          <div class="form-section">
+            <label class="form-label" for="fav-name-input">Recipe Name</label>
+            <input type="text" id="fav-name-input" class="text-input" placeholder="e.g. Chicken Tikka Masala">
+          </div>
+          <div class="form-section">
+            <label class="form-label" for="fav-url-input">URL</label>
+            <input type="url" id="fav-url-input" class="text-input" placeholder="https://...">
+          </div>
+          <div class="form-section">
+            <label class="form-label" for="fav-note-input">Note <span class="optional-tag">optional</span></label>
+            <input type="text" id="fav-note-input" class="text-input" placeholder="e.g. family favourite, tried and loved">
+          </div>
+          <button id="add-url-btn" class="btn-primary">Add to Favorites</button>
+        </div>
+
+        <!-- Photo form -->
+        <div id="add-photo-form" class="add-form hidden">
+          <div class="upload-zone" id="upload-zone" tabindex="0" role="button" aria-label="Upload recipe photos">
+            <span class="upload-icon" aria-hidden="true">📷</span>
+            <p class="upload-text">Drop images here or click to select</p>
+            <p class="upload-hint">Multiple images supported — upload different pages of the same recipe</p>
+            <input type="file" id="photo-file-input" accept="image/*" multiple class="file-input-hidden" tabindex="-1">
+          </div>
+          <div id="photo-previews-grid" class="photo-previews hidden"></div>
+          <button id="extract-btn" class="btn-primary" disabled>
+            <span id="extract-btn-text">Extract Recipe from Photos</span>
+            <span id="extract-btn-spinner" class="btn-spinner hidden" aria-hidden="true"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Favorites list -->
+      <div id="favorites-list-section">
+        <h2 class="section-heading">Saved Favorites</h2>
+        <div id="favorites-cards"></div>
+        <p id="no-favorites-msg" class="empty-state hidden">No favorites yet — add one above!</p>
+      </div>
+
+    </div>
+    <!-- /FAVORITES TAB -->
+
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
